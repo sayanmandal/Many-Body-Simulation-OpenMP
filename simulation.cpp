@@ -1,4 +1,5 @@
 #include <bits/stdc++.h>
+#include <omp.h>
 
 using namespace std;
 
@@ -13,6 +14,11 @@ using namespace std;
 #define RADIUS 0.5    //Radius of Ball
 #define SKIPLINE 8    //Skip first 8 line of the input file
 
+int numthreads;
+
+struct X{
+  double a, b, c;
+};
 
 class Body{
 
@@ -56,9 +62,9 @@ void Body::calculateforce(Body& b){
   this->fy += (modforce * disy)/ sqrt(moddist);
   this->fz += (modforce * disz)/ sqrt(moddist);
 
-  b.fx += -this->fx;
-  b.fy += -this->fy;
-  b.fz += -this->fz;
+  //b.fx += -this->fx;
+  //b.fy += -this->fy;
+  //b.fz += -this->fz;
 }
 
 
@@ -135,19 +141,24 @@ void readfile(const char* filename, Body* bodies){
 
 
 void run_simulation(Body* bodies){
-
-  for(int i = 0 ; i < NUMBALLS ; i++){
-    for(int j = i+1 ; j < NUMBALLS ; j++)
-      bodies[i].calculateforce(bodies[j]);
+  int i,j;
+  #pragma omp parallel for num_threads(numthreads) private(i,j)
+  for(i = 0 ; i < NUMBALLS ; i++){
+    for(j = 0 ; j < NUMBALLS ; j++)
+      if(j != i)
+        bodies[i].calculateforce(bodies[j]);
   }
 
-  for(int i = 0 ; i < NUMBALLS ; i++)
+  #pragma omp parallel for private(i)
+  for(i = 0 ; i < NUMBALLS ; i++)
     bodies[i].updatevelocity();
 
-  for(int i = 0 ; i < NUMBALLS ; i++)
+  #pragma omp parallel for private(i)
+  for(i = 0 ; i < NUMBALLS ; i++)
     bodies[i].updateposition();
 
-  for(int i = 0 ; i < NUMBALLS ; i++)
+  #pragma omp parallel for private(i)
+  for(i = 0 ; i < NUMBALLS ; i++)
     bodies[i].resetforce();
 
 }
@@ -155,16 +166,30 @@ void run_simulation(Body* bodies){
 
 void writefile(const char* filename, Body* bodies){
   //TODO
+  ofstream outfile;
+  outfile.open(filename, ios::binary | ios::out | ios::app);
+  for(int i = 0 ; i < NUMBALLS ; i++){
+    X x;
+    x.a = bodies[i].rx;
+    x.b = bodies[i].ry;
+    x.c = bodies[i].rz;
+    outfile.write(reinterpret_cast<char*>(&x), sizeof(x));
+    outfile.write("\n", 1);
+  }
 }
 
 
 int main(){
+  cout << "How many Threads?" << endl;
+  cin >> numthreads;
   Body* bodies = new Body[NUMBALLS];
   readfile("Trajectory.txt", bodies);
   for(int i = 0 ; i < TOTALSTEP ; i++){
     run_simulation(bodies);
-    if((i+1)%PRINTSTEP == 0)
-      writefile("Output.txt", bodies);
+    if((i+1)%PRINTSTEP == 0){
+      writefile("Output.bin", bodies);
+      cout << "Writing Done..." << endl;
+    }
   }
 
 }
