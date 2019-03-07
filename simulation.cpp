@@ -41,6 +41,7 @@ public:
 //Print Body Center positions
 ostream& operator<<(ostream& out, const Body& b){
   cout << b.rx << " " << b.ry << " " << b.rz;
+  return out;
 }
 
 //Calculate Euclidean Distance Mod between two bodies
