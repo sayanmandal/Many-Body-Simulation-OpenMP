@@ -33,6 +33,8 @@ public:
   void updatevelocity();
   void updateposition();
   void resetforce();
+  void save(ofstream& of);
+  void load(ifstream& inf);
   friend ostream& operator<<(ostream &out, const Body& b);
 };
 
@@ -135,8 +137,15 @@ void readfile(const char* filename, Body* bodies){
     bodies[i].rx = rx;
     bodies[i].ry = ry;
     bodies[i].rz = rz;
+    i++;
     //cout << bodies[i] << endl;
   }
+
+  /*
+  for(i = 0 ; i < NUMBALLS ; i++){
+    cout << bodies[i] << endl;
+  }
+  */
 }
 
 
@@ -178,18 +187,67 @@ void writefile(const char* filename, Body* bodies){
   }
 }
 
+void Body::save(ofstream& of){
+  of.write((char*)&rx, sizeof(rx));
+  of.write((char*)&ry, sizeof(ry));
+  of.write((char*)&rz, sizeof(rz));
+}
+
+
+void Body::load(ifstream& inf){
+  inf.read((char*)&rx, sizeof(rx));
+  inf.read((char*)&ry, sizeof(ry));
+  inf.read((char*)&rz, sizeof(rz));
+}
+
+void writeBinary(ofstream& of, Body* bodies){
+  for(int i = 0 ; i < NUMBALLS ; i++){
+    bodies[i].save(of);
+  }
+}
+
+void readBinary(ifstream& inf, Body* bodies){
+  for(int i = 0 ; i < NUMBALLS ; i++){
+    bodies[i].load(inf);
+  }
+}
+
 
 int main(){
+
   cout << "How many Threads?" << endl;
   cin >> numthreads;
+
   Body* bodies = new Body[NUMBALLS];
   readfile("Trajectory.txt", bodies);
+
+  ofstream myfile;
+  myfile.open("Output.dat", ios::binary | ios::out | ios::app);
+  writeBinary(myfile, bodies);
+
   for(int i = 0 ; i < TOTALSTEP ; i++){
     run_simulation(bodies);
     if((i+1)%PRINTSTEP == 0){
-      writefile("Output.bin", bodies);
+      writeBinary(myfile, bodies);
       cout << "Writing Done..." << endl;
     }
   }
+  myfile.close();
+  cout << "Complete" << endl;
+
+
+  /*
+  ifstream inf;
+  inf.open("Output.dat", ios::in);
+  while(!inf.eof()){
+    readBinary(inf, bodies);
+    for(int i = 0 ; i < NUMBALLS ; i++){
+      cout << bodies[i] << endl;
+    }
+  }
+  */
+
+
+
 
 }
