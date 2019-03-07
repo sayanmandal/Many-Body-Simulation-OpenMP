@@ -213,10 +213,17 @@ void readBinary(ifstream& inf, Body* bodies){
 }
 
 
-int main(){
+int main(int argc, char* argv[]){
 
-  cout << "How many Threads?" << endl;
-  cin >> numthreads;
+  //cout << "How many Threads?" << endl;
+  //cin >> numthreads;
+  if(argc != 2){
+    cout << "Usage: ./a.out <numthreads>" << endl;
+    exit(EXIT_FAILURE);
+  }
+
+  numthreads = atoi(argv[1]);
+  cout << numthreads << endl;
 
   Body* bodies = new Body[NUMBALLS];
   readfile("Trajectory.txt", bodies);
