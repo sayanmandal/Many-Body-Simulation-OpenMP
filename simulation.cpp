@@ -23,20 +23,29 @@ struct X{
 class Body{
 
 public:
+  int collison; //body body collision
   double rx, ry, rz;  //position of center
   double vx, vy, vz;  //velocity
   double fx, fy, fz;  //force
   double hvx, hvy, hvz; //half-step velocity
+  double tvx, tvy, tvz; //for handling velocity after body-body collision
 
-  Body(): rx(0.0), ry(0.0), rz(0.0), vx(0.0), vy(0.0), vz(0.0), fx(0.0), fy(0.0), fz(0.0), hvx(0.0), hvy(0.0), hvz(0.0){}
+  Body(): rx(0.0), ry(0.0), rz(0.0), vx(0.0), vy(0.0), vz(0.0), fx(0.0), fy(0.0), fz(0.0), hvx(0.0), hvy(0.0), hvz(0.0), collison(0), tvx(0.0), tvy(0.0), tvz(0.0){}
   void calculateforce(Body& b);
   void updatevelocity();
   void updateposition();
   void resetforce();
+  void checkcollision(Body& b);
+  void resettempvelocity();
+  void updateVEL();
   void save(ofstream& of);
   void load(ifstream& inf);
   friend ostream& operator<<(ostream &out, const Body& b);
 };
+
+
+
+
 
 //Print Body Center positions
 ostream& operator<<(ostream& out, const Body& b){
@@ -50,6 +59,31 @@ double calculatedistance(Body& b1, Body& b2){
   double disy = b2.ry - b1.ry;
   double disz = b2.rz - b1.rz;
   return disx*disx + disy*disy + disz*disz;
+}
+
+//if distnace between them is less than equal to the sum of radius
+void Body::checkcollision(Body& b){
+  if(calculatedistance(*this, b) <= 2*RADIUS){
+    this->collison = 1;
+    this->tvx += b.vx;
+    this->tvy += b.vy;
+    this->tvz += b.vz;
+  }
+}
+
+
+void Body::resettempvelocity(){
+  this->tvx = this->tvy = this->tvz = 0.0;
+  this->collison = 0;
+}
+
+
+void Body::updateVEL(){
+  if(this->collison){
+    this->vx = this->tvx;
+    this->vy = this->tvy;
+    this->vz = this->tvz;
+  }
 }
 
 
@@ -154,23 +188,42 @@ void run_simulation(Body* bodies){
   int i,j;
   #pragma omp parallel for num_threads(numthreads) private(i,j)
   for(i = 0 ; i < NUMBALLS ; i++){
-    for(j = 0 ; j < NUMBALLS ; j++)
+    for(j = 0 ; j < NUMBALLS ; j++){
       if(j != i)
         bodies[i].calculateforce(bodies[j]);
+      }
   }
 
-  #pragma omp parallel for private(i)
+  #pragma omp parallel for num_threads(numthreads) private(i)
   for(i = 0 ; i < NUMBALLS ; i++)
     bodies[i].updatevelocity();
 
-  #pragma omp parallel for private(i)
+  #pragma omp parallel for num_threads(numthreads) private(i)
   for(i = 0 ; i < NUMBALLS ; i++)
     bodies[i].updateposition();
 
-  #pragma omp parallel for private(i)
+  #pragma omp parallel for num_threads(numthreads) private(i)
   for(i = 0 ; i < NUMBALLS ; i++)
     bodies[i].resetforce();
 
+  /*
+  #pragma omp parallel for num_threads(numthreads) private(i)
+  for(i = 0 ; i < NUMBALLS ; i++){
+    for(j = 0 ; j < NUMBALLS ; j++){
+      if(j != i)
+        bodies[i].checkcollision(bodies[j]);
+    }
+  }
+
+  #pragma omp parallel for num_threads(numthreads)  private(i)
+  for(i = 0 ; i < NUMBALLS ; i++)
+    bodies[i].updateVEL();
+
+  #pragma omp parallel for num_threads(numthreads)  private(i)
+  for(i = 0 ; i < NUMBALLS ; i++)
+    bodies[i].resettempvelocity();
+
+*/
 }
 
 
@@ -254,6 +307,9 @@ int main(int argc, char* argv[]){
     }
   }
   */
+
+  delete[] bodies;
+  
 
 
 
