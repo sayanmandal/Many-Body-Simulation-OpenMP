@@ -100,8 +100,8 @@ void Body::updateposition(){
     this->rx = WIDTH - RADIUS;
     this->vx *= -1.0;
   }else if((this->rx - RADIUS) <= 0){
-    this->ry = RADIUS;
-    this->vy *= -1.0;
+    this->rx = RADIUS;
+    this->vx *= -1.0;
   }
 
   if((this->ry + RADIUS) >= HEIGHT){
