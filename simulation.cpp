@@ -91,13 +91,19 @@ void Body::updateVEL(){
 //formula taken from wiki
 void Body::calculateforce(Body& b){
   double moddist = calculatedistance(*this, b);
-  double modforce = (MASS * MASS)/ moddist;
+
+  double modforce = 0.0;
+  if(moddist != 0.0)
+    modforce = (MASS * MASS)/ moddist;
   double disx = b.rx - this->rx;
   double disy = b.ry - this->ry;
   double disz = b.rz - this->rz;
-  this->fx += (modforce * disx)/ sqrt(moddist);
-  this->fy += (modforce * disy)/ sqrt(moddist);
-  this->fz += (modforce * disz)/ sqrt(moddist);
+  if(moddist == 0.0) ;
+  else{
+    this->fx += (modforce * disx)/ sqrt(moddist);
+    this->fy += (modforce * disy)/ sqrt(moddist);
+    this->fz += (modforce * disz)/ sqrt(moddist);
+}
 
   //b.fx += -this->fx;
   //b.fy += -this->fy;
@@ -111,6 +117,11 @@ void Body::updatevelocity(){
   this->hvx = this->vx + (this->fx * DELTA)/ (2 * MASS);
   this->hvy = this->vy + (this->fy * DELTA)/ (2 * MASS);
   this->hvz = this->vz + (this->fz * DELTA)/ (2 * MASS);
+  /*
+  if(isnan(this->hvx) or isnan(this->hvy) or isnan(this->hvz)){
+    cout << "NAN Here" << endl;
+  }
+  */
 
   this->vx = this->hvx + (this->fx * DELTA) / (2 * MASS);
   this->vy = this->hvy + (this->fy * DELTA) / (2 * MASS);
@@ -133,26 +144,26 @@ void Body::updateposition(){
 
   if((this->rx + RADIUS) >= WIDTH){
     this->rx = WIDTH - RADIUS;
-    this->vx *= -1.0;
+    this->vx = -this->vx;
   }else if((this->rx - RADIUS) <= 0){
     this->rx = RADIUS;
-    this->vx *= -1.0;
+    this->vx = -this->vx;
   }
 
   if((this->ry + RADIUS) >= HEIGHT){
     this->ry = HEIGHT - RADIUS;
-    this->vy *= -1.0;
+    this->vy = -this->vy;
   }else if(this->ry - RADIUS <= 0){
     this->ry = RADIUS;
-    this->vy *= -1.0;
+    this->vy = -this->vy;
   }
 
   if(this->rz + RADIUS >= DEPTH){
     this->rz = DEPTH - RADIUS;
-    this->vz *= -1.0;
+    this->vz = -this->vz;
   }else if(this->rz - RADIUS <= 0){
     this->rz = RADIUS;
-    this->vz *= -1.0;
+    this->vz = -this->vz;
   }
 
 }
@@ -207,6 +218,7 @@ void run_simulation(Body* bodies){
     bodies[i].resetforce();
 
   /*
+
   #pragma omp parallel for num_threads(numthreads) private(i)
   for(i = 0 ; i < NUMBALLS ; i++){
     for(j = 0 ; j < NUMBALLS ; j++){
@@ -222,8 +234,8 @@ void run_simulation(Body* bodies){
   #pragma omp parallel for num_threads(numthreads)  private(i)
   for(i = 0 ; i < NUMBALLS ; i++)
     bodies[i].resettempvelocity();
+  */
 
-*/
 }
 
 
@@ -266,6 +278,13 @@ void readBinary(ifstream& inf, Body* bodies){
   }
 }
 
+void printBodies(Body* bodies){
+  for(int i = 0 ; i < NUMBALLS ; i++){
+    cout << bodies[i] << endl;
+    cout << bodies[i].vx << " " << bodies[i].vy << " " << bodies[i].vz << endl;
+  }
+}
+
 
 int main(int argc, char* argv[]){
 
@@ -283,18 +302,23 @@ int main(int argc, char* argv[]){
   readfile("Trajectory.txt", bodies);
 
   ofstream myfile;
-  myfile.open("Output.dat", ios::binary | ios::out | ios::app);
+  myfile.open("Output_2.dat", ios::binary | ios::out | ios::app);
   writeBinary(myfile, bodies);
+
+  double start = omp_get_wtime();
 
   for(int i = 0 ; i < TOTALSTEP ; i++){
     run_simulation(bodies);
     if((i+1)%PRINTSTEP == 0){
       writeBinary(myfile, bodies);
+      //printBodies(bodies);
       cout << "Writing Done..." << endl;
     }
   }
   myfile.close();
   cout << "Complete" << endl;
+
+  cout << "Time: " << omp_get_wtime()-start << endl;
 
 
   /*
@@ -309,7 +333,7 @@ int main(int argc, char* argv[]){
   */
 
   delete[] bodies;
-  
+
 
 
 
