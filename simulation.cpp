@@ -302,7 +302,7 @@ int main(int argc, char* argv[]){
   readfile("Trajectory.txt", bodies);
 
   ofstream myfile;
-  myfile.open("Output_2.dat", ios::binary | ios::out | ios::app);
+  myfile.open("Output_3.dat", ios::binary | ios::out | ios::app);
   writeBinary(myfile, bodies);
 
   double start = omp_get_wtime();
