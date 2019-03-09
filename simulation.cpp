@@ -93,17 +93,16 @@ void Body::calculateforce(Body& b){
   double moddist = calculatedistance(*this, b);
 
   double modforce = 0.0;
-  if(moddist != 0.0)
-    modforce = (MASS * MASS)/ moddist;
+  //if(moddist != 0.0)
+  modforce = (MASS * MASS)/ (moddist + 1e-7);
+  moddist += 1e-7;
   double disx = b.rx - this->rx;
   double disy = b.ry - this->ry;
   double disz = b.rz - this->rz;
-  if(moddist == 0.0) ;
-  else{
-    this->fx += (modforce * disx)/ sqrt(moddist);
-    this->fy += (modforce * disy)/ sqrt(moddist);
-    this->fz += (modforce * disz)/ sqrt(moddist);
-}
+  this->fx += (modforce * disx)/ sqrt(moddist);
+  this->fy += (modforce * disy)/ sqrt(moddist);
+  this->fz += (modforce * disz)/ sqrt(moddist);
+
 
   //b.fx += -this->fx;
   //b.fy += -this->fy;
@@ -218,7 +217,6 @@ void run_simulation(Body* bodies){
     bodies[i].resetforce();
 
   /*
-
   #pragma omp parallel for num_threads(numthreads) private(i)
   for(i = 0 ; i < NUMBALLS ; i++){
     for(j = 0 ; j < NUMBALLS ; j++){
@@ -226,11 +224,9 @@ void run_simulation(Body* bodies){
         bodies[i].checkcollision(bodies[j]);
     }
   }
-
   #pragma omp parallel for num_threads(numthreads)  private(i)
   for(i = 0 ; i < NUMBALLS ; i++)
     bodies[i].updateVEL();
-
   #pragma omp parallel for num_threads(numthreads)  private(i)
   for(i = 0 ; i < NUMBALLS ; i++)
     bodies[i].resettempvelocity();
@@ -308,7 +304,9 @@ int main(int argc, char* argv[]){
   double start = omp_get_wtime();
 
   for(int i = 0 ; i < TOTALSTEP ; i++){
+    double st = omp_get_wtime();
     run_simulation(bodies);
+    cout << omp_get_wtime()-st << endl;
     if((i+1)%PRINTSTEP == 0){
       writeBinary(myfile, bodies);
       //printBodies(bodies);
